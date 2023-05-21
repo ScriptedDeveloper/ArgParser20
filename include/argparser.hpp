@@ -4,7 +4,13 @@
 #include <string_view>
 #include <unordered_map>
 #include <variant>
-#include <any>
+#include <any>	
+
+template<typename T>
+concept is_string_type  =  std::is_same_v<T, const char*> ||
+	   std::is_same_v<T, std::string> ||
+	   std::is_same_v<T, std::string_view> ||
+	   std::is_same_v<T, char*>;
 
 class ArgParser {
 	private:		
@@ -25,27 +31,23 @@ class ArgParser {
 		};
 
 	public:
-		ArgParser(int argc, char **argv) : cmdMap() {
+		 ArgParser(int argc, char **argv) : cmdMap() {
 			this->argv = argv;
 			this->argc = argc;
 		};
 		virtual ~ArgParser() {
 
 		};
+
 	/*
 	 * Adds a command line param, has_param tells us if it has a value.
 	 */
 	template<typename T, typename T1>
-	constexpr void addOption(T title, AnyVar param_key, T1 desc, bool has_param) {
+	constexpr void addOption(T title, std::string_view param_key, T1 desc, bool has_param) {
 		Param p;
 		p.has_param = has_param;
 		p.desc = desc;
-		if (is_string_type<T>() && std::holds_alternative<const char*>(param_key)) {
-			auto param_str = std::string_view(std::get<const char*>(param_key));
-			title_map[std::string_view(title)] = param_str;
-			cmdMap[param_str] = p;
-		}
-		else if (is_string_type<T>()) {
+		if constexpr(is_string_type<T>) {
 			title_map[std::string_view(title)] = param_key;
 			cmdMap[param_key] = p;
 		} else {
@@ -130,13 +132,6 @@ class ArgParser {
 			std::visit([](auto &val){
 				std::cout << std::endl << "Argument : " << val << std::endl;
 			}, val);
-		}
-		template <typename T>
-		constexpr bool is_string_type() {
-		   return std::is_same_v<T, const char*> ||
-		   std::is_same_v<T, std::string> ||
-		   std::is_same_v<T, std::string_view> ||
-		   std::is_same_v<T, char*>;
 		}
 		/*
 		 * We store the command line parameters in an unordered_map, an ordered map is not needed here
