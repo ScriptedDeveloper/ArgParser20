@@ -19,6 +19,7 @@ class ArgParser {
 		 */
 		struct Param {
 			bool has_param{};
+			bool param_filled{}; // checking whether value is empty or not
 			AnyVar desc{};
 			AnyVar value{}; // value of param, like --input file.txt, file.txt is the value
 		};
@@ -84,11 +85,22 @@ class ArgParser {
 		}
 		if(!std::holds_alternative<Tval>(member.value)) {
 			PrintVariant(title);
-			throw std::invalid_argument("Error! Expected command line argument of same type.");
+			throw std::invalid_argument(std::string("Error! Expected command line argument of same type. Expected valid type but type is invalid. \nNote that const char* or char* is std::string_view.")); 
 		}
 		return std::get<Tval>(member.value);
 	}
-		
+	/*
+	 * Exceptions
+	 */
+	class noarguments {
+		public:
+			noarguments(std::string_view error_message) {
+				what(error_message);
+			};
+			std::string_view what(std::string_view msg) {
+				return msg;
+			}
+	};
 	private:	
 		char **argv{};
 		int argc{};
@@ -151,11 +163,15 @@ class ArgParser {
 						last_param->value = val;
 					else
 						throw std::invalid_argument("Wrong order of command line arguments, expected value but got something else");
+					last_param->param_filled = true;
 				} else {
 					//PrintVariant(val);
 					//throw std::invalid_argument("Expected new command line argument but got the same argument twice.");
 					last_param = &it_param->second;
 				}
+			}
+			if(argc == 1 && !title_map.empty() || !last_param->param_filled) {
+				throw noarguments("Expected arguments, but got none");
 			}
 			parsedArgs = true;
 			return true;
