@@ -4,6 +4,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <variant>
+#include <any>
 
 class ArgParser {
 	private:		
@@ -38,12 +39,12 @@ class ArgParser {
 		Param p;
 		p.has_param = has_param;
 		p.desc = desc;
-		if(is_string_type<T>() && std::holds_alternative<const char*>(param_key)) {
+		if (is_string_type<T>() && std::holds_alternative<const char*>(param_key)) {
 			auto param_str = std::string_view(std::get<const char*>(param_key));
 			title_map[std::string_view(title)] = param_str;
 			cmdMap[param_str] = p;
 		}
-		else if(is_string_type<T>()) {
+		else if (is_string_type<T>()) {
 			title_map[std::string_view(title)] = param_key;
 			cmdMap[param_key] = p;
 		} else {
@@ -61,7 +62,8 @@ class ArgParser {
 	/*
 	 * Gets command line option by value.
 	 */
-	auto getOptionValue(AnyVar title) {
+	template<typename Tval>
+	constexpr Tval getOptionValue(AnyVar title) {
 		/*
 		 * First, we convert char* or const char * to string_view, so we have 1 unique type to check after
 		 */
@@ -80,7 +82,11 @@ class ArgParser {
 			PrintVariant(title);
 			throw std::invalid_argument("Error! Specified command line argument doesn't require a param.");
 		}
-		return member.value;
+		if(!std::holds_alternative<Tval>(member.value)) {
+			PrintVariant(title);
+			throw std::invalid_argument("Error! Expected command line argument of same type.");
+		}
+		return std::get<Tval>(member.value);
 	}
 		
 	private:	
@@ -90,13 +96,13 @@ class ArgParser {
 		 * This function checks if the function is this specific type, by value.
 		 */
 		template <typename T, typename type>
-		bool is_type(T val) {
+		constexpr bool is_type(T val) {
 			return std::is_same<T, type>::value;
 		}
 		/*
 		 * This function gets the orignal function type.
 		 */
-		AnyVar get_value(std::string_view var) {
+		 const AnyVar get_value(std::string_view var) {
 			if(is_type<std::string_view, int>(var)) 
 				return std::stoi(var.data());
 			else if(is_type<std::string_view, bool>(var)) 
