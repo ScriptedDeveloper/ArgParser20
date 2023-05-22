@@ -60,7 +60,10 @@ class ArgParser {
 	 */
 	template <typename T>
 	constexpr bool has_Option(T title) {
-		return title_map.find(title) != title_map.end();
+		if constexpr(is_string_type<T>) 
+			return title_map.find(std::string_view(title)) != title_map.end();
+		else
+			return title_map.find(title) != title_map.end();
 	}
 	/*
 	 * Gets command line option by value.
