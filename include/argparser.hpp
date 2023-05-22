@@ -46,9 +46,11 @@ class ArgParser {
 	};
 
   public:
-	ArgParser(int argc, char **argv) : cmdMap() {
+	template<typename helptype = std::string_view>
+	ArgParser(int argc, char **argv, bool c_show_help = true, helptype c_help_param = "-h") : cmdMap(), show_help(c_show_help) {
 		this->argv = argv;
 		this->argc = argc;
+		help_param = c_help_param;
 	};
 	virtual ~ArgParser(){
 
@@ -74,10 +76,13 @@ class ArgParser {
 	 * Checks if the command line argument exists.
 	 */
 	template <typename T> constexpr bool has_Option(T title) {
-		if constexpr (is_string_type<T>)
+		if constexpr (is_string_type<T>) {
 			return title_map.find(std::string_view(title)) != title_map.end();
-		else
-			return title_map.find(title) != title_map.end();
+		} else {
+			auto it = title_map.find(title)->second;
+			auto it_cmd_map = cmdMap.find(it);
+			return title_map.find(title) != title_map.end() && std::holds_alternative<T>(it_cmd_map->first);
+		}
 	}
 	/*
 	 * Gets command line option by value.
@@ -156,6 +161,14 @@ class ArgParser {
 	 * Indicator if we already parsed the cli arguments or not.
 	 */
 	bool parsedArgs{false};
+	/*
+	 * Indicator if user wants a help message or not.
+	 */
+	bool show_help{true};
+	/*
+	 * Help parameter specified by constructor.
+	 */
+	AnyVar help_param{};
 	/*
 	 * This function parses argv params into the map.
 	 */
