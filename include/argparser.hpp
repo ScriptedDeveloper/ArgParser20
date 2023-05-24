@@ -22,6 +22,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 #include <string_view>
 #include <unordered_map>
 #include <variant>
+#include <functional>
 
 template <typename T>
 concept is_string_type = std::is_same_v<T, const char *> || std::is_same_v<T, std::string> ||
@@ -46,25 +47,69 @@ class ArgParser {
 	};
 
   public:
+	// TODO : Add a lambda function pointer bullshit so programmer can define a good help message
 	template<typename helptype = std::string_view>
-	constexpr ArgParser(int argc, char **argv, const bool c_show_help = true, helptype c_help_param = "-h", const int command_amount = -1) : cmdMap(), show_help(c_show_help) {
+	constexpr ArgParser(int argc, char **argv, const bool c_show_help = true, helptype c_help_param = "-h") : cmdMap(), show_help(c_show_help) {
 		this->argv = argv;
 		this->argc = argc;
 		help_param = c_help_param;
+		/*
 		bool showed_help = (c_show_help) ? find_help() : false;
 		if(showed_help && command_amount != -1)
 			ShowHelp();
 		else if(showed_help && command_amount == -1)
 			throw std::invalid_argument("Please set command_amount to a non-default value.");
-				
+			*/	
 	};
 	virtual ~ArgParser(){
 
 	};
 	void ShowHelp() {
-		
+		for(auto i : cmdMap) {
+			auto mem_param = i.second;
+			std::cout << std::endl;
+			PrintVariant(i.first, false);
+			std::cout << " : ";
+			PrintVariant(mem_param.desc, false);
+			std::cout << std::endl;
+		}
+	}	
+	/*
+	 * This function parses argv params into the map.
+	 */
+	bool parse() {
+		Param *last_param{nullptr};
+		if(argc == 1)
+			return true; // no arguments
+		for (int i = 1; i < argc; i++) {
+			auto val = get_value(std::string_view(argv[i])); // getting orignal value type from char *
+			auto it_param = cmdMap.find(val);
+			if (it_param == cmdMap.end()) {
+				if (last_param->has_param)
+					last_param->value = val;
+				else
+					throw std::invalid_argument(
+						"Wrong order of command line arguments, expected value but got something else");
+				last_param->param_filled = true;
+			} else {
+				// PrintVariant(val);
+				// throw std::invalid_argument("Expected new command line argument but got the same argument twice.");
+				if(it_param->second.has_param)
+					last_param = &it_param->second;
+				else {
+					it_param->second.value = val;
+					it_param->second.param_filled = true;
+				}
+			}
+		}
+		if ((last_param != nullptr && !last_param->param_filled) || (!cmdMap.begin()->second.param_filled)) {
+			throw noarguments("Expected arguments, but got none");
+		}
+		if(show_help)
+			ShowHelp();
+		parsedArgs = true;
+		return true;
 	}
-
 	/*
 	 * Adds a command line param, has_param tells us if it has a value.
 	 */
@@ -88,8 +133,10 @@ class ArgParser {
 		if constexpr (is_string_type<T>) {
 			return title_map.find(std::string_view(title)) != title_map.end();
 		} else {
-			auto it = title_map.find(title)->second;
-			auto it_cmd_map = cmdMap.find(it);
+			auto it = title_map.find(title);
+			if(it == title_map.end())
+				return false;
+			auto it_cmd_map = cmdMap.find(it->second);
 			return title_map.find(title) != title_map.end() && std::holds_alternative<T>(it_cmd_map->first);
 		}
 	}
@@ -165,8 +212,13 @@ class ArgParser {
 	/*
 	 * This function simply prints out the variant gotten by std::visit.
 	 */
-	void PrintVariant(AnyVar &val) {
-		std::visit([](auto &val) { std::cout << std::endl << "Argument : " << val << std::endl; }, val);
+	void PrintVariant(const AnyVar &val, const bool raw_print = true) {
+		std::visit([&](auto &val) { 
+				if(raw_print)
+					std::cout << std::endl << "Argument : " << val << std::endl; 
+				else
+					std::cout << val;
+				}, val);
 	}
 	/*
 	 * We store the command line parameters in an unordered_map, an ordered map is not needed here
@@ -188,33 +240,6 @@ class ArgParser {
 	 * Help parameter specified by constructor.
 	 */
 	AnyVar help_param{};
-	/*
-	 * This function parses argv params into the map.
-	 */
-	bool parse() {
-		Param *last_param;
-		for (int i = 1; i < argc; i++) {
-			auto val = get_value(std::string_view(argv[i])); // getting orignal value type from char *
-			auto it_param = cmdMap.find(val);
-			if (it_param == cmdMap.end()) {
-				if (last_param->has_param)
-					last_param->value = val;
-				else
-					throw std::invalid_argument(
-						"Wrong order of command line arguments, expected value but got something else");
-				last_param->param_filled = true;
-			} else {
-				// PrintVariant(val);
-				// throw std::invalid_argument("Expected new command line argument but got the same argument twice.");
-				last_param = &it_param->second;
-			}
-		}
-		if (argc == 1 && !title_map.empty() || !last_param->param_filled) {
-			throw noarguments("Expected arguments, but got none");
-		}
-		parsedArgs = true;
-		return true;
-	}
 	/*
 	 * Iterates through argv, finding -h.
 	 */
