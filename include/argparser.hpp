@@ -16,9 +16,9 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 */
 
 #pragma once
-#include <any>
 #include <iostream>
 #include <stdexcept>
+#include <array>
 #include <string_view>
 #include <unordered_map>
 #include <variant>
@@ -47,14 +47,23 @@ class ArgParser {
 
   public:
 	template<typename helptype = std::string_view>
-	ArgParser(int argc, char **argv, bool c_show_help = true, helptype c_help_param = "-h") : cmdMap(), show_help(c_show_help) {
+	constexpr ArgParser(int argc, char **argv, const bool c_show_help = true, helptype c_help_param = "-h", const int command_amount = -1) : cmdMap(), show_help(c_show_help) {
 		this->argv = argv;
 		this->argc = argc;
 		help_param = c_help_param;
+		bool showed_help = (c_show_help) ? find_help() : false;
+		if(showed_help && command_amount != -1)
+			ShowHelp();
+		else if(showed_help && command_amount == -1)
+			throw std::invalid_argument("Please set command_amount to a non-default value.");
+				
 	};
 	virtual ~ArgParser(){
 
 	};
+	void ShowHelp() {
+		
+	}
 
 	/*
 	 * Adds a command line param, has_param tells us if it has a value.
@@ -91,10 +100,7 @@ class ArgParser {
 		/*
 		 * First, we convert char* or const char * to string_view, so we have 1 unique type to check after
 		 */
-		if (std::holds_alternative<char *>(title))
-			title = std::string_view(std::get<char *>(title));
-		else if (std::holds_alternative<const char *>(title))
-			title = std::string_view(std::get<const char *>(title));
+		turn_string(title);
 		if (!has_Option(title)) {
 			PrintVariant(title);
 			throw std::invalid_argument("Error! Expected valid Option, but got non-existing.");
@@ -125,6 +131,7 @@ class ArgParser {
 	};
 
   private:
+	static constexpr std::array<std::string_view, 1> ParamArray{};
 	char **argv{};
 	int argc{};
 	/*
@@ -142,6 +149,18 @@ class ArgParser {
 		else if (is_type<std::string_view, float>(var))
 			return std::stof(var.data());
 		return var;
+	}
+	/*
+	 * This function turns an AnyVar variable into string_view, if its a string type.
+	 */
+	bool turn_string(AnyVar &var) {
+		if (std::holds_alternative<char *>(var))
+			var = std::string_view(std::get<char *>(var));
+		else if (std::holds_alternative<const char *>(var))
+			var = std::string_view(std::get<const char *>(var));
+		else
+			return false;
+		return true;
 	}
 	/*
 	 * This function simply prints out the variant gotten by std::visit.
@@ -195,5 +214,22 @@ class ArgParser {
 		}
 		parsedArgs = true;
 		return true;
+	}
+	/*
+	 * Iterates through argv, finding -h.
+	 */
+	bool find_help() {
+		int i = 0;
+		bool is_string = turn_string(help_param);
+		std::string_view help_view;
+		if(is_string)
+			help_view = std::get<std::string_view>(help_param);
+		for(char *it = argv[i]; i < argc; i++) {
+			it = argv[i];
+			std::string_view it_view{it};
+			if((is_string && it_view == help_view) || (help_param == get_value(it_view)))
+				return true; 
+		}
+		return false;
 	}
 };
