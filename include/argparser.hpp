@@ -86,6 +86,8 @@ class ArgParser {
 			auto val = get_value(std::string_view(argv[i])); // getting orignal value type from char *
 			auto it_param = cmdMap.find(val);
 			if (it_param == cmdMap.end()) {
+				if(last_param == nullptr)
+					throw noarguments("Invalid argument parsed.");
 				if (last_param->has_param)
 					last_param->value = val;
 				else
