@@ -17,6 +17,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 
 #pragma once
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <array>
 #include <string_view>
@@ -129,15 +130,17 @@ class ArgParser {
 	/*
 	 * Checks if the command line argument exists.
 	 */
-	template <typename T> constexpr bool has_Option(T title) {
+	template <typename T> bool has_Option(T title) {
 		if constexpr (is_string_type<T>) {
-			return title_map.find(std::string_view(title)) != title_map.end();
+			AnyVar view = std::string_view(title);
+			auto it = title_map.find(view);
+			return it != title_map.end() && it->first == view;
 		} else {
 			auto it = title_map.find(title);
 			if(it == title_map.end())
 				return false;
 			auto it_cmd_map = cmdMap.find(it->second);
-			return title_map.find(title) != title_map.end() && std::holds_alternative<T>(it_cmd_map->first);
+			return title_map.find(title) != title_map.end();
 		}
 	}
 	/*
@@ -160,12 +163,14 @@ class ArgParser {
 			PrintVariant(title);
 			throw std::invalid_argument("Error! Specified command line argument doesn't require a param.");
 		}
+
 		if (!std::holds_alternative<Tval>(member.value)) {
 			PrintVariant(title);
 			throw std::invalid_argument(
 				std::string("Error! Expected command line argument of same type. Expected valid type but type is "
 							"invalid. \nNote that const char* or char* is std::string_view."));
 		}
+		
 		return std::get<Tval>(member.value);
 	}
 	/*
@@ -184,16 +189,22 @@ class ArgParser {
 	/*
 	 * This function checks if the function is this specific type, by value.
 	 */
-	template <typename T, typename type> constexpr bool is_type(T val) { return std::is_same<T, type>::value; }
+	template <typename T>
+	auto is_type(std::string_view str) {
+		auto result = T();
+		auto istream = std::istringstream(str.data());
+		istream >> result;
+		return (istream.eof() && !istream.fail());
+	}
 	/*
 	 * This function gets the orignal function type.
 	 */
 	const AnyVar get_value(std::string_view var) {
-		if (is_type<std::string_view, int>(var))
+		if (is_type<int>(var))
 			return std::stoi(var.data());
-		else if (is_type<std::string_view, bool>(var))
+		else if (is_type<bool>(var))
 			return (var == "true") ? true : false;
-		else if (is_type<std::string_view, float>(var))
+		else if (is_type<float>(var))
 			return std::stof(var.data());
 		return var;
 	}
