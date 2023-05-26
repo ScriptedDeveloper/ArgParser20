@@ -104,7 +104,7 @@ class ArgParser {
 		if ((last_param != nullptr && !last_param->param_filled) || (!cmdMap.begin()->second.param_filled)) {
 			throw noarguments("Expected arguments, but got none");
 		}
-		if(show_help)
+		if(show_help && cmdMap.find(help_param) != cmdMap.end())
 			ShowHelp();
 		parsedArgs = true;
 		return true;
