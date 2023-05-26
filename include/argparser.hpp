@@ -50,22 +50,18 @@ class ArgParser {
   public:
 	// TODO : Add a lambda function pointer bullshit so programmer can define a good help message
 	template<typename helptype = std::string_view>
-	constexpr ArgParser(int argc, char **argv, const bool c_show_help = true, helptype c_help_param = "-h") : cmdMap(), show_help(c_show_help) {
+	ArgParser(int argc, char **argv, const bool c_show_help = true, helptype c_help_param = "-h", const std::function<std::string(void)> c_help_func = nullptr) : cmdMap(), show_help(c_show_help) {
 		this->argv = argv;
 		this->argc = argc;
 		help_param = c_help_param;
-		/*
-		bool showed_help = (c_show_help) ? find_help() : false;
-		if(showed_help && command_amount != -1)
-			ShowHelp();
-		else if(showed_help && command_amount == -1)
-			throw std::invalid_argument("Please set command_amount to a non-default value.");
-			*/	
+		help_ptr = c_help_func;
 	};
 	virtual ~ArgParser(){
 
 	};
 	void ShowHelp() {
+		if(help_ptr != nullptr)
+			std::cout << help_ptr() << std::endl;
 		for(auto i : cmdMap) {
 			auto mem_param = i.second;
 			std::cout << std::endl;
@@ -241,6 +237,10 @@ class ArgParser {
 	 * We also store the titles and map them to the params.
 	 */
 	std::unordered_map<AnyVar, AnyVar> title_map{};
+	/*
+	 * Contains a function pointer to the help lambda/function.
+	 */
+	std::function<std::string(void)> help_ptr{};
 	/*
 	 * Indicator if we already parsed the cli arguments or not.
 	 */
