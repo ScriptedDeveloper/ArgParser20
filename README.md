@@ -20,6 +20,8 @@ This will generate a dynamic shared library (.so) which you can use to compile y
 
 ## Example
 The library is very straightforward to use.
+
+example.cpp
 ```c++
 #include "include/argparser.hpp"
 #include <iostream>
