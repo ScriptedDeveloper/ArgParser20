@@ -1,10 +1,10 @@
 # CppArgs: C++20/17 Argument Parser Library
 
-CppArgs is a C++20/17 single-header argument parser library that simplifies command-line argument parsing in C++ programs. It provides a modern, type-safe interface and abstracts away the complexities of C-style argument parsing during compile time.
+CppArgs is a C++20 single-header argument parser library that simplifies command-line argument parsing in C++ programs. It provides a modern, type-safe interface and abstracts away the complexities of C-style argument parsing during compile time.
 
 ## Features
 
--  Modern C++ Support: Works with C++20 and C++17, leveraging the latest language features.
+-  Modern C++ Support: Works with C++20 leveraging the latest language features.
 - Abstraction from C: Provides a higher-level interface, making argument parsing easier for C++ developers.
 - Type Safety: Enables type-safe argument parsing and handling.
 - Flexible Parsing: Supports flags, options, and positional arguments with customizable parsing rules.
