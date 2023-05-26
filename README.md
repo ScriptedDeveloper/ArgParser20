@@ -1,6 +1,6 @@
 # CppArgs: C++20/17 Argument Parser Library
 
-CppArgs is a C++20/17 argument parser library that simplifies command-line argument parsing in C++ programs. It provides a modern, type-safe interface and abstracts away the complexities of C-style argument parsing.
+CppArgs is a C++20/17 single-header argument parser library that simplifies command-line argument parsing in C++ programs. It provides a modern, type-safe interface and abstracts away the complexities of C-style argument parsing during compile time.
 
 ## Features
 
@@ -8,7 +8,6 @@ CppArgs is a C++20/17 argument parser library that simplifies command-line argum
 - Abstraction from C: Provides a higher-level interface, making argument parsing easier for C++ developers.
 - Type Safety: Enables type-safe argument parsing and handling.
 - Flexible Parsing: Supports flags, options, and positional arguments with customizable parsing rules.
-- Automatic Help Generation: Generates help messages and usage information based on defined arguments.
 - Error Handling: Offers robust error handling mechanisms and meaningful error messages.
 
 ## Getting Started
@@ -16,9 +15,29 @@ CppArgs is a C++20/17 argument parser library that simplifies command-line argum
 ```
 cmake .
 ```
+This will generate a dynamic shared library (.so) which you can use to compile your project. Otherwise, you can also simply copy and paste the single header file.
 
 
-## Documentation
+## Example
+The library is very straightforward to use.
+```c++
+#include "include/argparser.hpp"
+#include <iostream>
 
-For detailed documentation and usage examples, refer to the official CppArgs documentation.
+int main(int argc, char **argv) {
+	auto help_function = [] {
+		return "Welcome to our Game! Here are the commands.";
+	};
+	ArgParser p(argc, argv, true, "-h", help_function);
+	p.addOption("Input", "-i", "Get console input.", true);
+	p.addOption("Money", "-m", "Get currency.", true);
+	if(p.has_Option("Money") && p.has_Option("Input"))
+		std::cout << "Successfully parsed all commands inputs!" << std::endl;
+	auto money = p.getOptionValue<int>("Money");
+	auto input = p.getOptionValue<std::string_view>("Input");
+	p.parse();
+}
+```
+
+
 
